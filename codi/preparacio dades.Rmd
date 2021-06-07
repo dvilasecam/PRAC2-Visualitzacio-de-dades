@@ -1,0 +1,115 @@
+---
+title: "A9: Creació de la visualització i lliurament del projecte (Pràctica)"
+author: "Daniel Vilaseca"
+date: "20/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+# Carreguem el conjunt de dades:
+data_estudis <- read.csv('C:/PRAC2/Alumnes_matriculats_per_ensenyament_i_unitats_dels_centres_docents.csv', stringsAsFactors = FALSE)
+# Analitzem la estructura del dataset:
+str(data_estudis)
+```
+
+Tenim 35 variables i 242.317 registres. Fem els canvis pertinents de tipus de variable:
+```{r}
+data_estudis$Codi.centre <- as.character(data_estudis$Codi.centre)
+data_estudis$Codi.naturalesa <- as.character(data_estudis$Codi.naturalesa)
+data_estudis$Codi.titularitat <- as.character(data_estudis$Codi.titularitat)
+data_estudis$Codi.comarca <- as.character(data_estudis$Codi.comarca)
+data_estudis$Codi.municipi_6 <- as.character(data_estudis$Codi.municipi_6)
+str(data_estudis)
+```
+
+Normalitzem la variable Nom titularitat:
+```{r}
+# Veiem que s'utilitzen diferents noms per la mateixa categoria:
+unique(data_estudis$Nom.titularitat)
+```
+```{r}
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Dep.Ensenyament"]="Departament d'Ensenyament"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Dep. EducaciÃ³"]="Departament d'Ensenyament"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Alt. Confesion."]="Altres Confesions Religioses"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Soc. Mercantils"]="Societats Mercantils"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Soc. Civils"]="Societats Civils"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Ordes i Cong."]="Ordes i Congregacions CatÃ²lics"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Corp. Locals"]="Corporacions Locals"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="EsglÃ©sia CatÃ²l."]="EsglÃ©sia CatÃ²lica"
+data_estudis$Nom.titularitat[data_estudis$Nom.titularitat=="Alt. Titularit."]="Altres Titularitats"
+unique(data_estudis$Nom.titularitat)
+```
+
+Creem la variable percentatge de dones matriculades:
+```{r}
+for (i in dim(data_estudis)[1]) {
+  data_estudis$perc_Dones <- round(data_estudis$MatrÃ.cules..Dones / data_estudis$MatrÃ.cules..Total, 2)
+}
+head(data_estudis)
+```
+
+Dataset agrupat per centre docent:
+```{r}
+data_estudis_centre <- data_estudis %>% 
+  group_by(Codi.centre) %>% 
+  summarise(DenominaciÃ³.completa = first(DenominaciÃ³.completa), Nom.naturalesa = first(Nom.naturalesa), Nom.titularitat = first(Nom.titularitat), Nom.comarca = first(Nom.comarca), Nom.municipi = first(Nom.municipi), Mat_Total = sum(MatrÃ.cules..Total), Mat_Dones = sum(MatrÃ.cules..Dones), Mat_Homes = sum(MatrÃ.cules..Homes))
+head(data_estudis_centre)
+```
+
+Subdataset amb les dades de Batxillerat:
+```{r}
+data_estudis_batxillerat <- subset(data_estudis, Nom.estudis == "BATXILLERAT")
+head(data_estudis_batxillerat)
+# Quantes files i columnes tenim:
+dim(data_estudis_batxillerat)
+```
+
+Subdataset amb les dades d'educació obligatòria:
+```{r}
+data_estudis_oblig <- subset(data_estudis, Nom.estudis == "EDUCACIÃ“ PRIMÃ€RIA" | Nom.estudis == "EDUCACIÃ“ SECUNDÃ€RIA OBLIGATÃ’RIA")
+str(data_estudis_oblig)
+dim(data_estudis_oblig)
+```
+
+Subdataset amb les dades d'ensenyaments d'idiomes:
+```{r}
+data_estudis_idiomes <- subset(data_estudis, Nom.estudis == "ENSENYAMENTS D'IDIOMES")
+dim(data_estudis_idiomes)
+```
+
+Variable que indica l'idioma que s'ensenya:
+```{r}
+data_estudis_idiomes$idioma <- str_extract(data_estudis_idiomes$Nom.ensenyament, '\\w*')
+data_estudis_idiomes$idioma <- gsub("Ã", "A", data_estudis_idiomes$idioma)
+data_estudis_idiomes$idioma <- gsub("Aˆ", "E", data_estudis_idiomes$idioma)
+head(data_estudis_idiomes)
+```
+
+Subdataset amb les dades de formació professional:
+```{r}
+data_estudis_pro <- subset(data_estudis, Nom.estudis == "FORMACIÃ“ PROFESSIONAL")
+str(data_estudis_pro)
+dim(data_estudis_pro)
+```
+
+Creem els documents csv amb els diferents datasets generats:
+```{r}
+# el dataset sencer:
+write.csv(data_estudis, "C:/PRAC2/dades-estudis.csv", row.names = FALSE)
+# el dataset agrupat per centre docent:
+write.csv(data_estudis_centre, "C:/PRAC2/dades-estudis-centres.csv", row.names = FALSE)
+# el subdataset de Batxillerat:
+write.csv(data_estudis_batxillerat, "C:/PRAC2/dades-estudis-batxillerat.csv", row.names = FALSE)
+# el subdataset amb les dades d'educació obligatòria (primària i secundària):
+write.csv(data_estudis_oblig, "C:/PRAC2/dades-estudis-primaria-secundaria.csv", row.names = FALSE)
+# el subdataset d'ensenyaments d'idiomes:
+write.csv(data_estudis_idiomes, "C:/PRAC2/dades-estudis-idiomes.csv", row.names = FALSE)
+# el subdataset amb les dades de formació professional:
+write.csv(data_estudis_pro, "C:/PRAC2/dades-estudis-formacio-professional.csv", row.names = FALSE)
+```
